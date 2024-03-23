@@ -1,0 +1,68 @@
+name: CI Workflow
+
+on:
+  pull_request:
+
+  push:
+    branches: [main]
+
+  release:
+    types: [published]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run pre-commit
+        uses: pre-commit/action@v3.0.1
+
+  # TODO: Maybe build in a separate job?
+  # TODO: Maybe use the gh pages action? Doesn't seem like it can deploy to another repo though.
+  # But could also consider just creating a gh page for this repo. Maybe cleaner.
+
+  publish:
+    if: github.event_name == 'release'
+    needs: lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Checkout target repo
+        uses: actions/checkout@v4
+        with:
+          repository: johnPertoft/johnPertoft.github.io
+          path: website
+          token: ${{ secrets.WEBSITE_REPO_PAT }}
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build
+        run: npm run build
+
+      - name: Publish
+        run: |
+          rm -rf website/llm-shader-toy/*
+          cp -r dist/* website/llm-shader-toy/
+          cd website
+          git config --global user.email "actions@github.com"
+          git config --global user.name "${GITHUB_ACTOR}"
+          git add .
+          git commit -m "Update LLM Shader Toy"
+          git push

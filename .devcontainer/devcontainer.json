@@ -1,0 +1,22 @@
+{
+  "name": "llm-shader-toy",
+  "image": "mcr.microsoft.com/devcontainers/javascript-node:1-20-bullseye",
+  "features": {
+    "ghcr.io/devcontainers/features/github-cli:1": {},
+    "ghcr.io/devcontainers-contrib/features/ripgrep:1": {},
+    "ghcr.io/devcontainers-contrib/features/pre-commit:2": {}
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ardenivanov.svelte-intellisense",
+        "esbenp.prettier-vscode",
+        "melihaltintas.svelte-format",
+        "svelte.svelte-vscode"
+      ]
+    }
+  },
+  "postAttachCommand": {
+    "install": "npm install"
+  }
+}
