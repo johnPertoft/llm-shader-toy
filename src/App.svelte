@@ -19,6 +19,29 @@ void main() {
     out_color = vec4(r, g, b, 1.0);
 }
 `.trim();
+
+  $: watchShaderSource(shaderSource);
+  function watchShaderSource(shaderSource: string) {
+    // Encode the shader source as a query parameter.
+    const encodedShaderSource = btoa(shaderSource);
+    const protocol = window.location.protocol;
+    const host = window.location.host;
+    const pathname = window.location.pathname;
+    const url = `${protocol}//${host}${pathname}?state=${encodedShaderSource}`;
+    window.history.replaceState({}, '', url);
+  }
+
+  // TODO: This only gets called once I think which is fine for our use case
+  // but if we put this code inside onMount it doesn't seem to work as expected
+  // and the shader source doesn't get updated.
+  $: watchWindowHref(window.location.href);
+  function watchWindowHref(href: string) {
+    const searchParams = new URLSearchParams(window.location.search);
+    const state = searchParams.get('state');
+    if (state !== null) {
+      shaderSource = atob(state);
+    }
+  }
 </script>
 
 <main>
