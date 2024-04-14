@@ -3,18 +3,6 @@
   import { AssistantMessage, UserMessage, fetchLLMResponse, getInitialMessages } from './llm';
   import { Ok } from 'ts-results';
 
-  // TODO:
-  // - Save api key in local storage?
-  // - Feed errors back to LLM so it can fix it automatically? Or at least display somewhere
-  // - Add some kind of "save" button to save a shader, maybe belongs in Editor.svelte
-  // - Add option of choosing the model to use.
-  // - Add specific error for when the api key is invalid and show the api key entry field again.
-  //   Plus some error message.
-  // - Detect manual changes to the shader code and insert message to LLM about it?
-  // - Define some function that the LLM can use to, e.g. for going back to earlier states?
-  // - Maybe some more clever prompting techniques depending on what the user seems to be asking
-  //   for? E.g. if they want to start from scratch or iteratively change the shader.
-
   // Module state.
   let openai: OpenAI;
   let apiKey: string;
@@ -27,7 +15,7 @@
     openai = new OpenAI({ apiKey: apiKey, dangerouslyAllowBrowser: true });
   }
 
-  function onMessageInputKeyDown(event): void {
+  function onMessageInputKeyDown(event: any): void {
     if (event.key === 'Enter' && !event.shiftKey) {
       event.preventDefault();
       if (event.target.value.trim() !== '') {
@@ -42,8 +30,6 @@
     const llmResponse = await fetchLLMResponse(openai, messages, shaderSource, userMessage);
     messageInput.readOnly = false;
     messageInput.value = '';
-
-    // TODO: Where to show errors from this?
     llmResponse.andThen((llmResponse) => {
       shaderSource = llmResponse.shaderSource;
       messages = llmResponse.messages;
@@ -52,11 +38,6 @@
   }
 
   function revertMessagesState(message_idx: number): void {
-    // TODO:
-    // - Should be possible to revert to before any user message too.
-    // - Maybe consider some better structure for this.
-    //   e.g. should avoid this being called with message_idx
-    //   pointing to something that is not an AssistantMessage.
     if (!(messages[message_idx] instanceof AssistantMessage)) {
       console.error('Tried to revert to a non-assistant message');
       return;

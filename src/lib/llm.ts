@@ -2,7 +2,6 @@ import { OpenAI } from 'openai';
 import { Err, Ok, Result } from 'ts-results';
 import { asResult } from './utils';
 
-// TODO: Include more api functions/variables here.
 const systemPrompt = `
 You are a skilled graphics shader programmer.
 

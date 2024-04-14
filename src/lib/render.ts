@@ -19,7 +19,7 @@ class Renderer {
     this.stop();
     const programSpec = loadProgram(this.gl, src)
       .mapErr((err) => {
-        throw err; // TODO: Calling .unwrap() directly doesn't throw the original error.
+        throw err; // Note: Calling .unwrap() directly doesn't throw the original error.
       })
       .unwrap();
     this.programSpec = Some(programSpec);
@@ -75,11 +75,9 @@ function loadProgram(gl: RenderingContext, source: string): Result<ProgramSpec, 
   `.trim();
 
   return compileProgram(gl, vertexShaderSource, source).map((programSpec) => {
-    // TODO: Can anything fail here?
     gl.enableVertexAttribArray(programSpec.positionAttributeLocation);
     gl.vertexAttribPointer(programSpec.positionAttributeLocation, 2, gl.FLOAT, false, 0, 0);
     gl.useProgram(programSpec.program);
-
     return programSpec;
   });
 }
@@ -92,14 +90,12 @@ function compileProgram(
   const compiledProgram = asResult(gl.createProgram(), Error('ProgramCreateError'))
     .andThen((program) => {
       return loadShader(gl, gl.VERTEX_SHADER, vertexShaderSource).andThen((vs) => {
-        // TODO: Can this fail?
         gl.attachShader(program, vs);
         return Ok(program);
       });
     })
     .andThen((program) => {
       return loadShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSource).andThen((fs) => {
-        // TODO: Can this fail?
         gl.attachShader(program, fs);
         return Ok(program);
       });

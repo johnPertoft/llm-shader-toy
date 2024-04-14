@@ -35,7 +35,6 @@
   export let shaderSource = '';
 
   onMount(() => {
-    // TODO: Needs to change on resize too somehow?
     canvas.width = width;
     canvas.height = height;
 
@@ -46,7 +45,6 @@
 
   // Trigger a re-render when the shader source changes.
   $: if (mounted && shaderSource !== '') {
-    console.info('Shader source changed!');
     try {
       renderer.run(shaderSource);
     } catch (e) {

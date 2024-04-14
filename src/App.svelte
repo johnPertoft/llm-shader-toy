@@ -53,10 +53,6 @@ void main() {
 </main>
 
 <style>
-  /* TODO: Why does the editor div extend outside when using 100% */
-  /* :global(html) {
-  		box-sizing: border-box;
-	} */
   :global(body) {
     height: 100%;
     width: 100%;
