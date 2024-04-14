@@ -6,6 +6,7 @@
   // Module state.
   let openai: OpenAI;
   let apiKey: string;
+  let llmModel: string;
   let messages = getInitialMessages();
   let messageInput: HTMLTextAreaElement;
   export let shaderSource: string;
@@ -27,7 +28,7 @@
 
   async function sendUserMessage(userMessage: string): Promise<void> {
     messageInput.readOnly = true;
-    const llmResponse = await fetchLLMResponse(openai, messages, shaderSource, userMessage);
+    const llmResponse = await fetchLLMResponse(openai, llmModel, messages, shaderSource, userMessage);
     messageInput.readOnly = false;
     messageInput.value = '';
     llmResponse.andThen((llmResponse) => {
@@ -73,6 +74,10 @@
       placeholder="Enter message here"
       on:keydown={onMessageInputKeyDown}
     />
+    <select bind:value={llmModel}>
+      <option value="gpt-4-turbo">gpt-4-turbo</option>
+      <option value="gpt-3.5-turbo">gpt-3.5-turbo</option>
+    </select>
   {/if}
 </div>
 

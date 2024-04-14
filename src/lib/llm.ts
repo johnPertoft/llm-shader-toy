@@ -65,6 +65,7 @@ function getInitialMessages(): ChatMessage[] {
 
 async function fetchLLMResponse(
   openai: OpenAI,
+  model: string,
   messages: ChatMessage[],
   shaderSource: string,
   userMessage: string
@@ -79,17 +80,17 @@ async function fetchLLMResponse(
     `.trim();
 
   const prompt = messages.concat(new UserMessage(message, userMessage));
-  const response = await callLLM(openai, prompt);
+  const response = await callLLM(openai, model, prompt);
   const llmResponse = response.andThen(parseResponse).map((code) => makeLLMResponse(prompt, code));
 
   return llmResponse;
 }
 
-async function callLLM(openai: OpenAI, messages: ChatMessage[]): Promise<Result<string, Error>> {
+async function callLLM(openai: OpenAI, model: string, messages: ChatMessage[]): Promise<Result<string, Error>> {
   try {
     const response = await openai.chat.completions.create({
       messages: messages.map((m) => ({ role: m.role, content: m.content })),
-      model: 'gpt-3.5-turbo'
+      model: model,
     });
     return asResult(response.choices[0].message.content, Error('LLMResponseFailure'));
   } catch (error) {
