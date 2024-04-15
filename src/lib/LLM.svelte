@@ -1,7 +1,10 @@
 <script lang="ts">
   import { OpenAI } from 'openai';
-  import { AssistantMessage, UserMessage, fetchLLMResponse, getInitialMessages } from './llm';
   import { Ok } from 'ts-results';
+  import { AssistantMessage, UserMessage, fetchLLMResponse, getInitialMessages } from './llm';
+  import spinner from '../assets/spinner.gif';
+
+  const availableModels = ['gpt-4-turbo', 'gpt-3.5-turbo'];
 
   // Module state.
   let openai: OpenAI;
@@ -9,6 +12,7 @@
   let llmModel: string;
   let messages = getInitialMessages();
   let messageInput: HTMLTextAreaElement;
+  let messageSpinner: HTMLImageElement;
   export let shaderSource: string;
 
   function onApikeyChange(event: { target: { value: string } }): void {
@@ -27,7 +31,9 @@
   }
 
   async function sendUserMessage(userMessage: string): Promise<void> {
+    // TODO: svelte has some await directives to handle this toggling instead
     messageInput.readOnly = true;
+    messageSpinner.style.visibility = 'visible';
     const llmResponse = await fetchLLMResponse(
       openai,
       llmModel,
@@ -36,6 +42,7 @@
       userMessage
     );
     messageInput.readOnly = false;
+    messageSpinner.style.visibility = 'hidden';
     messageInput.value = '';
     llmResponse.andThen((llmResponse) => {
       shaderSource = llmResponse.shaderSource;
@@ -74,15 +81,21 @@
         {/if}
       {/each}
     </div>
-    <textarea
-      id="llm-msg-input"
-      bind:this={messageInput}
-      placeholder="Enter message here"
-      on:keydown={onMessageInputKeyDown}
-    />
+
+    <div id="llm-msg-input-container">
+      <textarea
+        id="llm-msg-input"
+        bind:this={messageInput}
+        placeholder="Enter message here"
+        on:keydown={onMessageInputKeyDown}
+      />
+      <img id="llm-msg-input-spinner" bind:this={messageSpinner} src={spinner} alt="spinner" />
+    </div>
+
     <select bind:value={llmModel}>
-      <option value="gpt-4-turbo">gpt-4-turbo</option>
-      <option value="gpt-3.5-turbo">gpt-3.5-turbo</option>
+      {#each availableModels as model}
+        <option value={model}>{model}</option>
+      {/each}
     </select>
   {/if}
 </div>
@@ -90,6 +103,7 @@
 <style>
   #llm-api-key {
     width: 100%;
+    box-sizing: border-box;
   }
 
   #llm-msg-history {
@@ -119,9 +133,23 @@
     border-radius: 1em 1em 1em 1em;
   }
 
+  #llm-msg-input-container {
+    position: relative;
+  }
+
   #llm-msg-input {
-    margin-top: 25px;
     width: 100%;
     height: 100px;
+    resize: none;
+    box-sizing: border-box;
+  }
+
+  #llm-msg-input-spinner {
+    position: absolute;
+    width: 1em;
+    height: 1em;
+    bottom: 1em;
+    right: 1em;
+    visibility: hidden;
   }
 </style>

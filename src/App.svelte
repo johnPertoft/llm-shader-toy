@@ -1,7 +1,6 @@
 <script lang="ts">
   import Canvas from './lib/Canvas.svelte';
   import Editor from './lib/Editor.svelte';
-  import LLM from './lib/LLM.svelte';
 
   let shaderSource = `
 #version 300 es
@@ -46,24 +45,12 @@ void main() {
 
 <main>
   <Canvas {shaderSource} />
-  <div id="llm-editor-container">
-    <Editor bind:shaderSource />
-    <LLM bind:shaderSource />
-  </div>
+  <Editor bind:shaderSource />
 </main>
 
 <style>
   :global(body) {
     height: 100%;
     width: 100%;
-  }
-  #llm-editor-container {
-    display: block;
-    position: absolute;
-    top: 0;
-    right: 0;
-    width: 25%;
-    min-width: 300pt;
-    z-index: 999;
   }
 </style>
