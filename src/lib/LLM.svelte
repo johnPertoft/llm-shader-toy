@@ -28,7 +28,13 @@
 
   async function sendUserMessage(userMessage: string): Promise<void> {
     messageInput.readOnly = true;
-    const llmResponse = await fetchLLMResponse(openai, llmModel, messages, shaderSource, userMessage);
+    const llmResponse = await fetchLLMResponse(
+      openai,
+      llmModel,
+      messages,
+      shaderSource,
+      userMessage
+    );
     messageInput.readOnly = false;
     messageInput.value = '';
     llmResponse.andThen((llmResponse) => {

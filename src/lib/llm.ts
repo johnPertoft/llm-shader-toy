@@ -86,11 +86,15 @@ async function fetchLLMResponse(
   return llmResponse;
 }
 
-async function callLLM(openai: OpenAI, model: string, messages: ChatMessage[]): Promise<Result<string, Error>> {
+async function callLLM(
+  openai: OpenAI,
+  model: string,
+  messages: ChatMessage[]
+): Promise<Result<string, Error>> {
   try {
     const response = await openai.chat.completions.create({
       messages: messages.map((m) => ({ role: m.role, content: m.content })),
-      model: model,
+      model: model
     });
     return asResult(response.choices[0].message.content, Error('LLMResponseFailure'));
   } catch (error) {
