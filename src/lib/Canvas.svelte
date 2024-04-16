@@ -9,7 +9,6 @@
   let canvas: HTMLCanvasElement;
   let gl: WebGL2RenderingContext;
   let renderer: Renderer;
-  let mounted: boolean = false; // TODO: Needed?
   export let shaderSource = '';
 
   onMount(() => {
@@ -18,11 +17,12 @@
 
     gl = asOption(canvas.getContext('webgl2')).expect('Failed to get webgl2 context');
     renderer = new Renderer(gl);
-    mounted = true;
+    safeRunShader(shaderSource);
   });
 
-  // Trigger a re-render when the shader source changes.
-  $: if (mounted && shaderSource !== '') {
+  function safeRunShader(shaderSource: string): void {
+    if (!renderer) return;
+    if (shaderSource === '') return;
     try {
       renderer.run(shaderSource);
     } catch (e) {
@@ -34,6 +34,12 @@
         throw e;
       }
     }
+  }
+
+  // Trigger a re-render when the shader source changes.
+  $: watchShaderSource(shaderSource);
+  function watchShaderSource(shaderSource: string): void {
+    safeRunShader(shaderSource);
   }
 </script>
 
