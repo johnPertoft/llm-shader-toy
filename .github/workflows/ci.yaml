@@ -28,10 +28,7 @@ jobs:
       - name: Run pre-commit
         uses: pre-commit/action@v3.0.1
 
-  # TODO: Maybe build in a separate job?
-  # TODO: Maybe use the gh pages action? Doesn't seem like it can deploy to another repo though.
-  # But could also consider just creating a gh page for this repo. Maybe cleaner.
-
+  # TODO: Probably publish to pages in this repo instead.
   publish:
     if: github.event_name == 'release'
     needs: lint
