@@ -1,6 +1,7 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
+  import { onMount, getContext } from 'svelte';
   import { Renderer, ShaderCompileError } from './render';
+  import { shaderCompileError } from './stores';
   import { asOption } from './utils';
 
   // Module state.
@@ -9,7 +10,7 @@
   let canvas: HTMLCanvasElement;
   let gl: WebGL2RenderingContext;
   let renderer: Renderer;
-  export let shaderSource = '';
+  export let shaderSource: string = '';
 
   onMount(() => {
     canvas.width = width;
@@ -27,8 +28,7 @@
       renderer.run(shaderSource);
     } catch (e) {
       if (e instanceof ShaderCompileError) {
-        console.error(e.message);
-        console.error(e.info);
+        shaderCompileError.set(e);
       } else {
         console.error('Unknown error');
         throw e;

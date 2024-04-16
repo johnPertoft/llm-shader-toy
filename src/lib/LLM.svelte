@@ -2,7 +2,9 @@
   import { OpenAI } from 'openai';
   import { Ok } from 'ts-results';
   import { AssistantMessage, UserMessage, fetchLLMResponse, getInitialMessages } from './llm';
+  import { shaderCompileError } from './stores';
   import spinner from '../assets/spinner.gif';
+  import type { ShaderCompileError } from './render';
 
   const availableModels = ['gpt-4-turbo', 'gpt-3.5-turbo'];
 
@@ -27,6 +29,15 @@
         sendUserMessage(userMessage);
       }
     }
+  }
+
+  // TODO: Is this really better than just passing this as a prop? Seems like the same thing.
+  shaderCompileError.subscribe(onShaderCompileError);
+  function onShaderCompileError(error: ShaderCompileError | null): void {
+    if (error === null) return;
+    console.log('HERE');
+    console.log(error);
+    // TODO: Feed the error message to the LLM model.
   }
 
   async function sendUserMessage(userMessage: string): Promise<void> {

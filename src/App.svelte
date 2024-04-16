@@ -2,6 +2,7 @@
   import Canvas from './lib/Canvas.svelte';
   import Editor from './lib/Editor.svelte';
 
+  // Module state.
   let shaderSource = `
 #version 300 es
 precision highp float;
