@@ -7,16 +7,15 @@
   const availableModels = ['gpt-4-turbo', 'gpt-3.5-turbo'];
 
   // Module state.
-  let openai: OpenAI;
-  let apiKey: string;
+  let openai: OpenAI | undefined;
   let llmModel: string;
   let messages = getInitialMessages();
   let messageInput: HTMLTextAreaElement;
   let messageSpinner: HTMLImageElement;
   export let shaderSource: string;
 
-  function onApikeyChange(event: { target: { value: string } }): void {
-    apiKey = event.target.value;
+  function onApikeyChange(event: any): void {
+    const apiKey = event.target.value;
     openai = new OpenAI({ apiKey: apiKey, dangerouslyAllowBrowser: true });
   }
 
@@ -35,7 +34,7 @@
     messageInput.readOnly = true;
     messageSpinner.style.visibility = 'visible';
     const llmResponse = await fetchLLMResponse(
-      openai,
+      openai!,
       llmModel,
       messages,
       shaderSource,
@@ -44,11 +43,19 @@
     messageInput.readOnly = false;
     messageSpinner.style.visibility = 'hidden';
     messageInput.value = '';
-    llmResponse.andThen((llmResponse) => {
-      shaderSource = llmResponse.shaderSource;
-      messages = llmResponse.messages;
-      return Ok(Ok.EMPTY);
-    });
+
+    llmResponse
+      .mapErr((err) => {
+        // TODO: Display error message somewhere.
+        console.error(err);
+        openai = undefined;
+        return err;
+      })
+      .andThen((llmResponse) => {
+        shaderSource = llmResponse.shaderSource;
+        messages = llmResponse.messages;
+        return Ok(Ok.EMPTY);
+      });
   }
 
   function revertMessagesState(message_idx: number): void {
@@ -62,7 +69,7 @@
 </script>
 
 <div id="llm-container">
-  {#if apiKey === undefined}
+  {#if openai === undefined}
     <input
       type="text"
       id="llm-api-key"
