@@ -1,4 +1,4 @@
-import { OpenAI } from 'openai';
+import { APIError, OpenAI } from 'openai';
 import { Err, Ok, Result } from 'ts-results';
 import { asResult } from './utils';
 
@@ -86,6 +86,12 @@ async function fetchLLMResponse(
   return llmResponse;
 }
 
+class APIKeyError extends Error {
+  constructor() {
+    super('API key is missing or invalid');
+  }
+}
+
 async function callLLM(
   openai: OpenAI,
   model: string,
@@ -97,10 +103,14 @@ async function callLLM(
       model: model
     });
     return asResult(response.choices[0].message.content, Error('LLMResponseFailure'));
-  } catch (error) {
-    console.log(error);
-    // TODO: Make custom error here for e.g. api key error
-    return Err(Error('LLMResponseFailure'));
+  } catch (error: unknown) {
+    if (error instanceof APIError) {
+      if (error.status === 401) {
+        return Err(new APIKeyError());
+      }
+      return Err(error);
+    }
+    return Err(Error('UnknownLLMError'));
   }
 }
 
