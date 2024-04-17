@@ -2,20 +2,18 @@
   import CodeEditor from './CodeEditor.svelte';
   import LLM from './LLM.svelte';
 
-  // TODO:
-  // - Make the editor container collapsible to the left
-  // - Add a reset button
-  // - Move the revert logic here instead?
-  //   Needs to be matched with the messages though
-
   // Module state.
   export let shaderSource: string;
+  let visible = true;
 </script>
 
 <div id="editor-container">
-  <CodeEditor bind:shaderSource />
-  <LLM bind:shaderSource />
+  <CodeEditor bind:shaderSource {visible} />
+  <LLM bind:shaderSource {visible} />
 </div>
+<button id="hide-ui-button" on:click={() => (visible = !visible)}>
+  {visible ? 'Hide' : 'Show'} UI
+</button>
 
 <style>
   #editor-container {
@@ -25,7 +23,15 @@
     left: 0;
     width: 25%;
     min-width: 300pt;
-    z-index: 999;
+    z-index: 1;
     background-color: rgba(0, 0, 0, 0.5);
+  }
+
+  #hide-ui-button {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    z-index: 2;
+    color: white;
   }
 </style>

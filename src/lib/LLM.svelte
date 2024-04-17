@@ -1,5 +1,6 @@
 <script lang="ts">
   import { OpenAI } from 'openai';
+  import { fade } from 'svelte/transition';
   import { Ok } from 'ts-results';
   import { AssistantMessage, UserMessage, fetchLLMResponse, getInitialMessages } from './llm';
   import { shaderCompileError } from './stores';
@@ -15,6 +16,7 @@
   let messageInput: HTMLTextAreaElement;
   let messageSpinner: HTMLImageElement;
   export let shaderSource: string;
+  export let visible: boolean;
 
   function onApikeyChange(event: any): void {
     const apiKey = event.target.value;
@@ -79,44 +81,48 @@
   }
 </script>
 
-<div id="llm-container">
-  {#if openai === undefined}
-    <input
-      type="text"
-      id="llm-api-key"
-      placeholder="Enter API key to start chatting"
-      on:change={onApikeyChange}
-    />
-  {:else}
-    <div id="llm-msg-history">
-      {#each messages.entries() as [message_idx, message]}
-        {#if message instanceof UserMessage}
-          <div class="llm-user-msg">{message.msg}</div>
-        {:else if message instanceof AssistantMessage}
-          <div class="llm-assistant-msg">
-            <button on:click={() => revertMessagesState(message_idx)}>Revert to this shader</button>
-          </div>
-        {/if}
-      {/each}
-    </div>
-
-    <div id="llm-msg-input-container">
-      <textarea
-        id="llm-msg-input"
-        bind:this={messageInput}
-        placeholder="Enter message here"
-        on:keydown={onMessageInputKeyDown}
+{#if visible}
+  <div id="llm-container" transition:fade>
+    {#if openai === undefined}
+      <input
+        type="text"
+        id="llm-api-key"
+        placeholder="Enter API key to start chatting"
+        on:change={onApikeyChange}
       />
-      <img id="llm-msg-input-spinner" bind:this={messageSpinner} src={spinner} alt="spinner" />
-    </div>
+    {:else}
+      <div id="llm-msg-history">
+        {#each messages.entries() as [message_idx, message]}
+          {#if message instanceof UserMessage}
+            <div class="llm-user-msg">{message.msg}</div>
+          {:else if message instanceof AssistantMessage}
+            <div class="llm-assistant-msg">
+              <button on:click={() => revertMessagesState(message_idx)}
+                >Revert to this shader</button
+              >
+            </div>
+          {/if}
+        {/each}
+      </div>
 
-    <select bind:value={llmModel}>
-      {#each availableModels as model}
-        <option value={model}>{model}</option>
-      {/each}
-    </select>
-  {/if}
-</div>
+      <div id="llm-msg-input-container">
+        <textarea
+          id="llm-msg-input"
+          bind:this={messageInput}
+          placeholder="Enter message here"
+          on:keydown={onMessageInputKeyDown}
+        />
+        <img id="llm-msg-input-spinner" bind:this={messageSpinner} src={spinner} alt="spinner" />
+      </div>
+
+      <select bind:value={llmModel}>
+        {#each availableModels as model}
+          <option value={model}>{model}</option>
+        {/each}
+      </select>
+    {/if}
+  </div>
+{/if}
 
 <style>
   #llm-api-key {
