@@ -36,10 +36,21 @@
   // TODO: Is this really better than just passing this as a prop? Seems like the same thing.
   shaderCompileError.subscribe(onShaderCompileError);
   function onShaderCompileError(error: ShaderCompileError | null): void {
-    if (error === null) return;
-    console.log('HERE');
-    console.log(error);
-    // TODO: Feed the error message to the LLM model.
+    if (error === null) {
+      return;
+    }
+    if (messageInput === undefined) {
+      return;
+    }
+
+    // TODO: Maybe make this less intrusive.
+    const userMessageSuggestion = `
+I tried to compile this shader, but it failed with the following error:
+\`\`\`
+${error.info}
+\`\`\`
+    `.trim();
+    messageInput.value = userMessageSuggestion;
   }
 
   async function sendUserMessage(userMessage: string): Promise<void> {
@@ -61,7 +72,7 @@
       .mapErr((err) => {
         // TODO: Display error message somewhere.
         console.error(err);
-        openai = undefined;
+        openai = undefined; // TODO: Only if api key is invalid.
         return err;
       })
       .andThen((llmResponse) => {
