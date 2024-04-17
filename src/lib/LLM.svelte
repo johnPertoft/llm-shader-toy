@@ -97,9 +97,9 @@
             <div class="llm-user-msg">{message.msg}</div>
           {:else if message instanceof AssistantMessage}
             <div class="llm-assistant-msg">
-              <button on:click={() => revertMessagesState(message_idx)}
-                >Revert to this shader</button
-              >
+              <button on:click={() => revertMessagesState(message_idx)}>
+                Revert to this shader
+              </button>
             </div>
           {/if}
         {/each}
