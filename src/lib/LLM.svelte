@@ -9,10 +9,20 @@
 
   const availableModels = ['gpt-4-turbo', 'gpt-3.5-turbo'];
 
+  // TODO: Represent the chat history as a list of ChatTurns instead.
+  // With a ChatTurn being a tuple of user and assistant message.
+  // And keep the SystemMessage separate.
+  // Affects revert, undoRevert, the argument to fetchLLMResponse, and how
+  // the messages are displayed in the template.
+
+  // TODO: Add a watch function to messages instead to make sure we update
+  // the shaderSource
+
   // Module state.
   let openai: OpenAI | undefined;
   let llmModel: string;
   let messages = getInitialMessages();
+  let revertedMessages: Array<UserMessage | AssistantMessage> = [];
   let messageInput: HTMLTextAreaElement;
   let messageSpinner: HTMLImageElement;
   export let shaderSource: string;
@@ -44,6 +54,7 @@
     }
 
     // TODO: Maybe make this less intrusive.
+    // TODO: Also need to remove it if it's fixed by manual means
     const userMessageSuggestion = `
 I tried to compile this shader, but it failed with the following error:
 \`\`\`
@@ -78,17 +89,49 @@ ${error.info}
       .andThen((llmResponse) => {
         shaderSource = llmResponse.shaderSource;
         messages = llmResponse.messages;
+        revertedMessages = [];
         return Ok(Ok.EMPTY);
       });
   }
 
-  function revertMessagesState(message_idx: number): void {
-    if (!(messages[message_idx] instanceof AssistantMessage)) {
-      console.error('Tried to revert to a non-assistant message');
+  function revert(): void {
+    // The messages state looks like this:
+    // [SystemMessage, UserMessage, AssistantMessage, UserMessage, AssistantMessage, ...]
+    // A call to this function should remove the last AssistantMessage and UserMessage.
+
+    // If only the SystemMessage is left, do nothing.
+    if (messages.length <= 1) {
       return;
     }
-    messages = messages.slice(0, message_idx + 1);
-    shaderSource = (messages[message_idx] as AssistantMessage).shaderSource;
+
+    // TODO: Allow to undo the revert by pushing this to a stack somewhere.
+    // Save the last two messages.
+    const lastTwoMessages = messages.slice(-2);
+    revertedMessages = revertedMessages.concat(lastTwoMessages);
+
+    // Remove the last two messages.
+    messages = messages.slice(0, -2);
+
+    // TODO: Add a watch function to messages instead to make sure we update the shaderSource
+    // whenever the messages change. I.e. instead of doing it here?
+
+    if (messages.length <= 1) {
+      // Just the SystemMessage left here.
+      // TODO: Should save the initial shader source and revert to it here.
+      return;
+    }
+
+    shaderSource = (messages[messages.length - 1] as AssistantMessage).shaderSource;
+  }
+
+  function undoRevert(): void {
+    if (revertedMessages.length < 2) {
+      return;
+    }
+    const [userMessage, assistantMessage] = revertedMessages.slice(-2);
+    revertedMessages = revertedMessages.slice(0, -2);
+    messages = messages.concat(userMessage, assistantMessage);
+    shaderSource = (messages[messages.length - 1] as AssistantMessage).shaderSource;
   }
 </script>
 
@@ -103,15 +146,9 @@ ${error.info}
       />
     {:else}
       <div id="llm-msg-history">
-        {#each messages.entries() as [message_idx, message]}
+        {#each messages as message}
           {#if message instanceof UserMessage}
             <div class="llm-user-msg">{message.msg}</div>
-          {:else if message instanceof AssistantMessage}
-            <div class="llm-assistant-msg">
-              <button on:click={() => revertMessagesState(message_idx)}>
-                Revert to this shader
-              </button>
-            </div>
           {/if}
         {/each}
       </div>
@@ -125,6 +162,13 @@ ${error.info}
         />
         <img id="llm-msg-input-spinner" bind:this={messageSpinner} src={spinner} alt="spinner" />
       </div>
+
+      {#if messages.length >= 2}
+        <button on:click={revert}>Revert</button>
+      {/if}
+      {#if revertedMessages.length >= 2}
+        <button on:click={undoRevert}>Undo revert</button>
+      {/if}
 
       <select bind:value={llmModel}>
         {#each availableModels as model}
@@ -156,16 +200,6 @@ ${error.info}
     background-color: #0074d9;
     border-radius: 1em 1em 0 1em;
     margin: 10px;
-  }
-
-  .llm-assistant-msg {
-    background-color: #6b6c6d;
-    border-radius: 1em 1em 1em 0;
-    margin: 10px;
-  }
-
-  .llm-assistant-msg button {
-    border-radius: 1em 1em 1em 1em;
   }
 
   #llm-msg-input-container {
