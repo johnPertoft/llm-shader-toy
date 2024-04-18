@@ -29,6 +29,9 @@ void main() {
 \`\`\`
 `;
 
+const availableModels = ['gpt-4-turbo', 'gpt-3.5-turbo'] as const;
+type Model = (typeof availableModels)[number];
+
 class SystemMessage {
   readonly role = 'system';
   constructor(readonly content: string) {}
@@ -36,54 +39,30 @@ class SystemMessage {
 
 class AssistantMessage {
   readonly role = 'assistant';
-  constructor(
-    readonly content: string,
-    readonly shaderSource: string
-  ) {}
+  constructor(readonly content: string) {}
 }
 
 class UserMessage {
   readonly role = 'user';
-  constructor(
-    readonly content: string,
-    readonly msg: string
-  ) {}
+  constructor(readonly content: string) {}
 }
 
 type ChatMessage = SystemMessage | AssistantMessage | UserMessage;
 
-class LLMResponse {
+class ChatTurn {
   constructor(
-    readonly messages: ChatMessage[],
+    readonly userMessage: UserMessage,
+    readonly assistantMessage: AssistantMessage,
+    readonly userInput: string,
     readonly shaderSource: string
   ) {}
 }
 
-function getInitialMessages(): ChatMessage[] {
-  return [new SystemMessage(systemPrompt)];
-}
-
-async function fetchLLMResponse(
-  openai: OpenAI,
-  model: string,
-  messages: ChatMessage[],
-  shaderSource: string,
-  userMessage: string
-): Promise<Result<LLMResponse, Error>> {
-  const message = `
-    Current shader code:
-    \`\`\`glsl
-    ${shaderSource}
-    \`\`\`
-
-    ${userMessage}
-    `.trim();
-
-  const prompt = messages.concat(new UserMessage(message, userMessage));
-  const response = await callLLM(openai, model, prompt);
-  const llmResponse = response.andThen(parseResponse).map((code) => makeLLMResponse(prompt, code));
-
-  return llmResponse;
+class LLMResponse {
+  constructor(
+    readonly turns: ChatTurn[],
+    readonly shaderSource: string
+  ) {}
 }
 
 class APIKeyError extends Error {
@@ -92,14 +71,62 @@ class APIKeyError extends Error {
   }
 }
 
+async function fetchLLMResponse(
+  openai: OpenAI,
+  model: Model,
+  turns: ChatTurn[],
+  currentShaderCode: string,
+  userInput: string
+): Promise<Result<LLMResponse, Error>> {
+  const newUserMessage = makeUserMessage(userInput, currentShaderCode);
+  const llmPrompt = makeLLMPrompt(turns, newUserMessage);
+  const response = await callLLM(openai, model, llmPrompt);
+  const llmResponse = response.andThen(parseResponse).map((newShaderCode) => {
+    const newAssistantMessage = makeAssistantMessage(newShaderCode);
+    const newChatTurn = new ChatTurn(newUserMessage, newAssistantMessage, userInput, newShaderCode);
+    return new LLMResponse(turns.concat(newChatTurn), newShaderCode);
+  });
+  return llmResponse;
+}
+
+function makeUserMessage(userInput: string, code: string): UserMessage {
+  const content = `
+Current shader code:
+\`\`\`glsl
+${code}
+\`\`\`
+
+${userInput}
+  `.trim();
+  return new UserMessage(content);
+}
+
+function makeAssistantMessage(code: string): AssistantMessage {
+  const content = `
+Assistant generated shader code:
+\`\`\`glsl
+${code}
+\`\`\`
+  `.trim();
+  return new AssistantMessage(content);
+}
+
+function makeLLMPrompt(turns: ChatTurn[], userMessage: UserMessage): ChatMessage[] {
+  return [
+    new SystemMessage(systemPrompt),
+    ...turns.flatMap((turn) => [turn.userMessage, turn.assistantMessage]),
+    userMessage
+  ];
+}
+
 async function callLLM(
   openai: OpenAI,
-  model: string,
-  messages: ChatMessage[]
+  model: Model,
+  prompt: Array<ChatMessage>
 ): Promise<Result<string, Error>> {
   try {
     const response = await openai.chat.completions.create({
-      messages: messages.map((m) => ({ role: m.role, content: m.content })),
+      messages: prompt,
       model: model
     });
     return asResult(response.choices[0].message.content, Error('LLMResponseFailure'));
@@ -123,17 +150,5 @@ function parseResponse(response: string): Result<string, Error> {
   return Ok(match[1].trim());
 }
 
-function makeLLMResponse(messages: ChatMessage[], shaderSource: string): LLMResponse {
-  const assistantMessage = `
-    Assistant generated shader code:
-    \`\`\`glsl
-    ${shaderSource}
-    \`\`\`
-    `;
-  return new LLMResponse(
-    messages.concat(new AssistantMessage(assistantMessage, shaderSource)),
-    shaderSource
-  );
-}
-
-export { AssistantMessage, UserMessage, fetchLLMResponse, getInitialMessages };
+export { availableModels, fetchLLMResponse, ChatTurn };
+export type { Model };

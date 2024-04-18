@@ -2,31 +2,20 @@
   import { OpenAI } from 'openai';
   import { fade } from 'svelte/transition';
   import { Ok } from 'ts-results';
-  import { AssistantMessage, UserMessage, fetchLLMResponse, getInitialMessages } from './llm';
+  import { availableModels, fetchLLMResponse, ChatTurn, type Model } from './llm';
   import { shaderCompileError } from './stores';
   import spinner from '../assets/spinner.gif';
   import type { ShaderCompileError } from './render';
 
-  const availableModels = ['gpt-4-turbo', 'gpt-3.5-turbo'];
-
-  // TODO: Represent the chat history as a list of ChatTurns instead.
-  // With a ChatTurn being a tuple of user and assistant message.
-  // And keep the SystemMessage separate.
-  // Affects revert, undoRevert, the argument to fetchLLMResponse, and how
-  // the messages are displayed in the template.
-
-  // TODO: Add a watch function to messages instead to make sure we update
-  // the shaderSource
-
   // Module state.
   let openai: OpenAI | undefined;
-  let llmModel: string;
-  let messages = getInitialMessages();
-  let revertedMessages: Array<UserMessage | AssistantMessage> = [];
+  let modelSelection: Model;
+  let turns: ChatTurn[] = [];
+  let revertedTurns: ChatTurn[] = [];
   let messageInput: HTMLTextAreaElement;
   let messageSpinner: HTMLImageElement;
-  export let shaderSource: string;
   export let visible: boolean;
+  export let shaderSource: string;
 
   function onApikeyChange(event: any): void {
     const apiKey = event.target.value;
@@ -41,6 +30,16 @@
         sendUserMessage(userMessage);
       }
     }
+  }
+
+  $: watchTurnsState(turns);
+  function watchTurnsState(turns: ChatTurn[]): void {
+    if (turns.length === 0) {
+      // TODO: Should revert to the initial shader source here.
+      // Or define a reset function and call that.
+      return;
+    }
+    shaderSource = turns[turns.length - 1].shaderSource;
   }
 
   // TODO: Is this really better than just passing this as a prop? Seems like the same thing.
@@ -65,13 +64,12 @@ ${error.info}
   }
 
   async function sendUserMessage(userMessage: string): Promise<void> {
-    // TODO: svelte has some await directives to handle this toggling instead
     messageInput.readOnly = true;
     messageSpinner.style.visibility = 'visible';
     const llmResponse = await fetchLLMResponse(
       openai!,
-      llmModel,
-      messages,
+      modelSelection,
+      turns,
       shaderSource,
       userMessage
     );
@@ -83,55 +81,32 @@ ${error.info}
       .mapErr((err) => {
         // TODO: Display error message somewhere.
         console.error(err);
-        openai = undefined; // TODO: Only if api key is invalid.
+        openai = undefined; // TODO: Only if api key error.
         return err;
       })
       .andThen((llmResponse) => {
-        shaderSource = llmResponse.shaderSource;
-        messages = llmResponse.messages;
-        revertedMessages = [];
+        turns = llmResponse.turns;
+        revertedTurns = [];
         return Ok(Ok.EMPTY);
       });
   }
 
   function revert(): void {
-    // The messages state looks like this:
-    // [SystemMessage, UserMessage, AssistantMessage, UserMessage, AssistantMessage, ...]
-    // A call to this function should remove the last AssistantMessage and UserMessage.
-
-    // If only the SystemMessage is left, do nothing.
-    if (messages.length <= 1) {
+    if (turns.length === 0) {
       return;
     }
-
-    // TODO: Allow to undo the revert by pushing this to a stack somewhere.
-    // Save the last two messages.
-    const lastTwoMessages = messages.slice(-2);
-    revertedMessages = revertedMessages.concat(lastTwoMessages);
-
-    // Remove the last two messages.
-    messages = messages.slice(0, -2);
-
-    // TODO: Add a watch function to messages instead to make sure we update the shaderSource
-    // whenever the messages change. I.e. instead of doing it here?
-
-    if (messages.length <= 1) {
-      // Just the SystemMessage left here.
-      // TODO: Should save the initial shader source and revert to it here.
-      return;
-    }
-
-    shaderSource = (messages[messages.length - 1] as AssistantMessage).shaderSource;
+    const lastTurn = turns.pop();
+    revertedTurns.push(lastTurn as ChatTurn);
+    turns = turns; // Force update.
   }
 
   function undoRevert(): void {
-    if (revertedMessages.length < 2) {
+    if (revertedTurns.length === 0) {
       return;
     }
-    const [userMessage, assistantMessage] = revertedMessages.slice(-2);
-    revertedMessages = revertedMessages.slice(0, -2);
-    messages = messages.concat(userMessage, assistantMessage);
-    shaderSource = (messages[messages.length - 1] as AssistantMessage).shaderSource;
+    const lastRevertedTurn = revertedTurns.pop();
+    turns.push(lastRevertedTurn as ChatTurn);
+    turns = turns; // Force update.
   }
 </script>
 
@@ -146,10 +121,8 @@ ${error.info}
       />
     {:else}
       <div id="llm-msg-history">
-        {#each messages as message}
-          {#if message instanceof UserMessage}
-            <div class="llm-user-msg">{message.msg}</div>
-          {/if}
+        {#each turns as turn}
+          <div class="llm-user-msg">{turn.userInput}</div>
         {/each}
       </div>
 
@@ -163,14 +136,14 @@ ${error.info}
         <img id="llm-msg-input-spinner" bind:this={messageSpinner} src={spinner} alt="spinner" />
       </div>
 
-      {#if messages.length >= 2}
+      {#if turns.length >= 1}
         <button on:click={revert}>Revert</button>
       {/if}
-      {#if revertedMessages.length >= 2}
+      {#if revertedTurns.length >= 1}
         <button on:click={undoRevert}>Undo revert</button>
       {/if}
 
-      <select bind:value={llmModel}>
+      <select bind:value={modelSelection}>
         {#each availableModels as model}
           <option value={model}>{model}</option>
         {/each}
