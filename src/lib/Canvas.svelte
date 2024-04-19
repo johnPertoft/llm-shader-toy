@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount, getContext } from 'svelte';
+  import { onMount } from 'svelte';
   import { Renderer, ShaderCompileError } from './render';
   import { shaderCompileError } from './stores';
   import { asOption } from './utils';
@@ -43,6 +43,7 @@
   }
 </script>
 
+<!-- TODO: Need to wrap in container for binding clienWidth -->
 <canvas id="canvas" bind:this={canvas} bind:clientWidth={width} bind:clientHeight={height}></canvas>
 
 <style>

@@ -95,18 +95,18 @@ ${error.info}
     if (turns.length === 0) {
       return;
     }
-    const lastTurn = turns.pop();
-    revertedTurns.push(lastTurn as ChatTurn);
-    turns = turns; // Force update.
+    const mostRecentTurn = turns[turns.length - 1];
+    turns = turns.slice(0, -1);
+    revertedTurns = [...revertedTurns, mostRecentTurn];
   }
 
   function undoRevert(): void {
     if (revertedTurns.length === 0) {
       return;
     }
-    const lastRevertedTurn = revertedTurns.pop();
-    turns.push(lastRevertedTurn as ChatTurn);
-    turns = turns; // Force update.
+    const mostRecentRevertedTurn = revertedTurns[revertedTurns.length - 1];
+    revertedTurns = revertedTurns.slice(0, -1);
+    turns = [...turns, mostRecentRevertedTurn];
   }
 </script>
 
@@ -135,13 +135,8 @@ ${error.info}
         />
         <img id="llm-msg-input-spinner" bind:this={messageSpinner} src={spinner} alt="spinner" />
       </div>
-
-      {#if turns.length >= 1}
-        <button on:click={revert}>Revert</button>
-      {/if}
-      {#if revertedTurns.length >= 1}
-        <button on:click={undoRevert}>Undo revert</button>
-      {/if}
+      <button on:click={revert} disabled={turns.length < 1}>Revert</button>
+      <button on:click={undoRevert} disabled={revertedTurns.length < 1}>Undo revert</button>
 
       <select bind:value={modelSelection}>
         {#each availableModels as model}
