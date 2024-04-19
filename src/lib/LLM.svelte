@@ -116,7 +116,7 @@ ${error.info}
       <input
         type="text"
         id="llm-api-key"
-        placeholder="Enter API key to start chatting"
+        placeholder="Enter OpenAI API key to start chatting"
         on:change={onApikeyChange}
       />
     {:else}
