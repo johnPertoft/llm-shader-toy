@@ -65,11 +65,9 @@ class LLMResponse {
   ) {}
 }
 
-class APIKeyError extends Error {
-  constructor() {
-    super('API key is missing or invalid');
-  }
-}
+class RecoverableError extends Error {}
+
+class UnrecoverableError extends Error {}
 
 async function fetchLLMResponse(
   openai: OpenAI,
@@ -132,12 +130,22 @@ async function callLLM(
     return asResult(response.choices[0].message.content, Error('LLMResponseFailure'));
   } catch (error: unknown) {
     if (error instanceof APIError) {
+      // https://platform.openai.com/docs/guides/error-codes/api-errors
       if (error.status === 401) {
-        return Err(new APIKeyError());
+        return Err(new UnrecoverableError('API key is invalid'));
       }
-      return Err(error);
+      if (error.status === 403) {
+        return Err(new UnrecoverableError('Region not supported'));
+      }
+      if (error.status === 429) {
+        return Err(new RecoverableError('Rate limit exceeded, try again later'));
+      }
+      if (error.status === 500 || error.status === 503) {
+        return Err(new RecoverableError('Internal server error, try again later'));
+      }
+      return Err(new UnrecoverableError(`API error: ${error.message}`));
     }
-    return Err(Error('UnknownLLMError'));
+    return Err(new UnrecoverableError(`Unknown Error: ${error}`));
   }
 }
 
@@ -150,5 +158,5 @@ function parseResponse(response: string): Result<string, Error> {
   return Ok(match[1].trim());
 }
 
-export { availableModels, fetchLLMResponse, ChatTurn };
+export { availableModels, fetchLLMResponse, ChatTurn, RecoverableError, UnrecoverableError };
 export type { Model };

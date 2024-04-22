@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { Toaster } from 'svelte-sonner';
   import Canvas from './lib/Canvas.svelte';
   import Editor from './lib/Editor.svelte';
 
@@ -47,6 +48,7 @@ void main() {
 <main>
   <Canvas {shaderSource} />
   <Editor bind:shaderSource />
+  <Toaster />
 </main>
 
 <style>

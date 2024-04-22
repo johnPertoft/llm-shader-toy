@@ -25,6 +25,7 @@
   "dependencies": {
     "openai": "^4.31.0",
     "svelte-ace": "^1.0.21",
+    "svelte-sonner": "^0.3.22",
     "ts-results": "^3.3.0"
   }
 }

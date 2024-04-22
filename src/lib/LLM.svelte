@@ -1,8 +1,9 @@
 <script lang="ts">
   import { OpenAI } from 'openai';
+  import { toast } from 'svelte-sonner';
   import { fade } from 'svelte/transition';
   import { Ok } from 'ts-results';
-  import { availableModels, fetchLLMResponse, ChatTurn, type Model } from './llm';
+  import { availableModels, fetchLLMResponse, ChatTurn, type Model, RecoverableError } from './llm';
   import { shaderCompileError } from './stores';
   import spinner from '../assets/spinner.gif';
   import type { ShaderCompileError } from './render';
@@ -42,7 +43,6 @@
     shaderSource = turns[turns.length - 1].shaderSource;
   }
 
-  // TODO: Is this really better than just passing this as a prop? Seems like the same thing.
   shaderCompileError.subscribe(onShaderCompileError);
   function onShaderCompileError(error: ShaderCompileError | null): void {
     if (error === null) {
@@ -79,9 +79,13 @@ ${error.info}
 
     llmResponse
       .mapErr((err) => {
-        // TODO: Display error message somewhere.
-        console.error(err);
-        openai = undefined; // TODO: Only if api key error.
+        if (err instanceof RecoverableError) {
+          toast.warning(err.message);
+        } else {
+          toast.error(err.message);
+          console.error(err);
+          openai = undefined;
+        }
         return err;
       })
       .andThen((llmResponse) => {
