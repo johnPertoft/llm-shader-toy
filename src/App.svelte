@@ -48,7 +48,7 @@ void main() {
 <main>
   <Canvas {shaderSource} />
   <Editor bind:shaderSource />
-  <Toaster />
+  <Toaster position="top-center" />
 </main>
 
 <style>
