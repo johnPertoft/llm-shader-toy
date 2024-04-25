@@ -10,6 +10,7 @@
   let canvas: HTMLCanvasElement;
   let gl: WebGL2RenderingContext;
   let renderer: Renderer;
+  let renderTimeScale: number = 1.0;
   export let shaderSource: string = '';
 
   onMount(() => {
@@ -41,10 +42,28 @@
   function watchShaderSource(shaderSource: string): void {
     safeRunShader(shaderSource);
   }
+
+  $: watchRenderTimeScale(renderTimeScale);
+  function watchRenderTimeScale(renderTimeScale: number): void {
+    if (!renderer) return;
+    renderer.setRenderTimeScale(renderTimeScale);
+  }
 </script>
 
-<!-- TODO: Need to wrap in container for binding clienWidth -->
+<!-- TODO: Need to wrap in container for binding clientWidth -->
 <canvas id="canvas" bind:this={canvas} bind:clientWidth={width} bind:clientHeight={height}></canvas>
+<div id="render-time-scale-container">
+  <label for="render-time-scale">Render Time Scale</label>
+  <input
+    id="render-time-scale"
+    type="range"
+    min="0.1"
+    max="10.0"
+    step="0.1"
+    bind:value={renderTimeScale}
+  />
+  <span>{renderTimeScale.toFixed(1)}</span>
+</div>
 
 <style>
   #canvas {
@@ -56,5 +75,13 @@
     right: 0;
     height: 100%;
     width: 100%;
+  }
+
+  #render-time-scale-container {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    z-index: 100;
+    background-color: rgba(0, 0, 0, 0.5);
   }
 </style>

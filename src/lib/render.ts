@@ -7,11 +7,13 @@ class Renderer {
   isRendering: boolean;
   gl: RenderingContext;
   programSpec: Option<ProgramSpec>;
+  renderTimeScale: number;
 
   constructor(gl: RenderingContext) {
     this.isRendering = false;
     this.gl = gl;
     this.programSpec = None;
+    this.renderTimeScale = 1.0;
     initVertexData(gl);
   }
 
@@ -31,6 +33,13 @@ class Renderer {
     this.isRendering = false;
   }
 
+  public setRenderTimeScale(scale: number): void {
+    if (scale <= 0) {
+      throw Error('Invalid time scale');
+    }
+    this.renderTimeScale = scale;
+  }
+
   private renderLoop(): void {
     if (!this.isRendering) {
       return;
@@ -46,7 +55,7 @@ class Renderer {
         gl.uniform2f(resolutionUniformLocation, gl.canvas.width, gl.canvas.height);
       });
       programSpec.timeUniformLocation.map((timeUniformLocation) => {
-        gl.uniform1f(timeUniformLocation, time);
+        gl.uniform1f(timeUniformLocation, time * this.renderTimeScale);
       });
 
       gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
