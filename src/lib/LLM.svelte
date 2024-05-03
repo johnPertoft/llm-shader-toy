@@ -15,8 +15,16 @@
   let revertedTurns: ChatTurn[] = [];
   let messageInput: HTMLTextAreaElement;
   let messageSpinner: HTMLImageElement;
+  let initialShaderSource: string;
   export let visible: boolean;
   export let shaderSource: string;
+
+  // Save the initial shader source.
+  $: {
+    if (initialShaderSource === undefined) {
+      initialShaderSource = shaderSource;
+    }
+  }
 
   function onApikeyChange(event: any): void {
     const apiKey = event.target.value;
@@ -36,8 +44,7 @@
   $: watchTurnsState(turns);
   function watchTurnsState(turns: ChatTurn[]): void {
     if (turns.length === 0) {
-      // TODO: Should revert to the initial shader source here.
-      // Or define a reset function and call that.
+      shaderSource = initialShaderSource;
       return;
     }
     shaderSource = turns[turns.length - 1].shaderSource;
