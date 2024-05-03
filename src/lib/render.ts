@@ -24,19 +24,19 @@ class Renderer {
       .unwrap();
     this.programSpec = Some(programSpec);
     this.isRendering = true;
-    this.renderLoop();
+    requestAnimationFrame((t) => this.renderLoop(t));
   }
 
   public stop(): void {
     this.isRendering = false;
   }
 
-  private renderLoop(): void {
+  private renderLoop(time: number): void {
     if (!this.isRendering) {
       return;
     }
-    this.renderFrame(performance.now() / 1000.0);
-    requestAnimationFrame(() => this.renderLoop());
+    this.renderFrame(time / 1000.0);
+    requestAnimationFrame((t) => this.renderLoop(t));
   }
 
   private renderFrame(time: number): void {
@@ -83,7 +83,7 @@ function loadProgram(gl: RenderingContext, source: string): Result<ProgramSpec, 
 }
 
 function compileProgram(
-  gl: WebGL2RenderingContext,
+  gl: RenderingContext,
   vertexShaderSource: string,
   fragmentShaderSource: string
 ): Result<ProgramSpec, Error> {
