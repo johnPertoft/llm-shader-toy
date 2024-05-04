@@ -19,6 +19,10 @@
     gl = asOption(canvas.getContext('webgl2')).expect('Failed to get webgl2 context');
     renderer = new Renderer(gl);
     safeRunShader(shaderSource);
+
+    // TODO: Display this in ui somewhere?
+    // TODO: Should probably show 0 when it's not rendering
+    setInterval(() => console.info(`FPS: ${renderer.fpsCounter.fps.toFixed(2)}`), 1000);
   });
 
   function safeRunShader(shaderSource: string): void {

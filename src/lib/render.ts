@@ -4,14 +4,16 @@ import { asOption, asResult } from './utils';
 type RenderingContext = WebGL2RenderingContext;
 
 class Renderer {
-  isRendering: boolean;
   gl: RenderingContext;
+  isRendering: boolean;
   programSpec: Option<ProgramSpec>;
+  fpsCounter: FpsCounter;
 
   constructor(gl: RenderingContext) {
-    this.isRendering = false;
     this.gl = gl;
+    this.isRendering = false;
     this.programSpec = None;
+    this.fpsCounter = new FpsCounter();
     initVertexData(gl);
   }
 
@@ -24,6 +26,7 @@ class Renderer {
       .unwrap();
     this.programSpec = Some(programSpec);
     this.isRendering = true;
+    this.fpsCounter = new FpsCounter();
     requestAnimationFrame((t) => this.renderLoop(t));
   }
 
@@ -31,11 +34,16 @@ class Renderer {
     this.isRendering = false;
   }
 
+  public fps(): number {
+    return this.fpsCounter.fps;
+  }
+
   private renderLoop(time: number): void {
     if (!this.isRendering) {
       return;
     }
     this.renderFrame(time / 1000.0);
+    this.fpsCounter.update();
     requestAnimationFrame((t) => this.renderLoop(t));
   }
 
@@ -176,6 +184,29 @@ function initVertexData(gl: RenderingContext) {
     ]),
     gl.STATIC_DRAW
   );
+}
+
+class FpsCounter {
+  frameCount: number;
+  lastTime: number;
+  fps: number;
+
+  constructor() {
+    this.frameCount = 0;
+    this.lastTime = performance.now();
+    this.fps = 0;
+  }
+
+  public update(): void {
+    this.frameCount += 1;
+    const currentTime = performance.now();
+    const delta = currentTime - this.lastTime;
+    if (delta > 1000) {
+      this.fps = (this.frameCount * 1000) / delta;
+      this.frameCount = 0;
+      this.lastTime = currentTime;
+    }
+  }
 }
 
 export { Renderer, ShaderCompileError };
